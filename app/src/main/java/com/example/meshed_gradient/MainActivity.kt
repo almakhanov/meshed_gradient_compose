@@ -315,7 +315,7 @@ fun FluidBox(modifier: Modifier, colors: List<MutableState<Color>>, hashCode: In
         Canvas(
             modifier = Modifier
                 .size(maxSize.dp)
-                .blur(0.dp, edgeTreatment = BlurredEdgeTreatment(CircleShape))
+                .blur(60.dp, edgeTreatment = BlurredEdgeTreatment(CircleShape))
         ) {
             drawRect(
                 color = colors[hashCode % (colors.size)].value,
