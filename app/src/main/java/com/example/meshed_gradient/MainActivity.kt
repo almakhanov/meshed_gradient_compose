@@ -61,11 +61,90 @@ import com.github.skydoves.colorpicker.compose.rememberColorPickerController
 import kotlin.math.abs
 
 class MainActivity : ComponentActivity() {
+
+
+    private val days = listOf<GSDay>(
+        GSDay(true, false),
+        GSDay(true, false),
+        GSDay(true, false),
+        GSDay(true, false),
+        GSDay(false, false),
+        GSDay(true, false),
+        GSDay(true, false),
+
+        GSDay(true, false),
+        GSDay(true, false),
+        GSDay(true, false),
+        GSDay(true, false),
+        GSDay(true, false),
+        GSDay(true, false),
+        GSDay(true, false),
+
+        GSDay(true, false),
+        GSDay(false, false),
+        GSDay(false, false),
+        GSDay(false, false),
+        GSDay(true, false),
+        GSDay(true, false),
+        GSDay(true, false),
+
+        GSDay(false, false),
+        GSDay(false, false),
+        GSDay(true, false),
+        GSDay(true, false),
+        GSDay(true, false),
+        GSDay(false, false),
+        GSDay(true, false),
+
+        GSDay(true, false),
+        GSDay(true, false),
+        GSDay(false, false),
+        GSDay(false, false),
+        GSDay(true, false),
+        GSDay(false, false),
+        GSDay(false, false),
+
+        GSDay(false, false),
+        GSDay(false, false),
+        GSDay(true, false),
+        GSDay(true, false),
+        GSDay(true, false),
+        GSDay(true, true),
+        GSDay(false, false),
+
+        GSDay(false, false),
+        GSDay(false, false),
+        GSDay(false, false),
+        GSDay(false, false),
+        GSDay(false, false),
+        GSDay(false, false),
+        GSDay(false, false),
+        GSDay(false, false),
+        GSDay(false, false),
+        GSDay(false, false),
+        GSDay(false, false),
+        GSDay(false, false),
+        GSDay(false, false),
+        GSDay(false, false),
+        GSDay(false, false),
+        GSDay(false, false),
+        GSDay(false, false),
+        GSDay(false, false),
+        GSDay(false, false),
+        GSDay(false, false),
+        GSDay(false, false),
+        GSDay(false, false),
+        GSDay(false, false),
+        GSDay(false, false),
+        GSDay(false, false),
+    )
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
             MeshedGradientTheme {
                 var selectedIndex by remember { mutableStateOf(0) }
+                var showCalendar by remember { mutableStateOf(false) }
 
                 val controller = rememberColorPickerController()
 
@@ -88,13 +167,13 @@ class MainActivity : ComponentActivity() {
 
                 Column {
                     Box(
-                        modifier = Modifier
-                            .size(150.dp)
-                            .align(Alignment.CenterHorizontally)
+                        modifier = Modifier.fillMaxWidth()
                     ) {
                         HsvColorPicker(
                             modifier = Modifier
-                                .padding(10.dp),
+                                .size(150.dp)
+                                .padding(10.dp)
+                                .align(Alignment.Center),
                             controller = controller,
                             drawOnPosSelected = {
                                 drawColorIndicator(
@@ -108,6 +187,19 @@ class MainActivity : ComponentActivity() {
                             },
                             initialColor = "A6FF8C".toColor(),
                         )
+
+                        Text(
+                            text = "CLICK TO SHOW CALENDAR",
+                            modifier = Modifier
+                                .width(100.dp)
+                                .align(Alignment.CenterStart)
+                                .background(Color.Green)
+                                .clickable {
+                                    showCalendar = !showCalendar
+                                },
+                            color = Color.White
+                        )
+
                     }
                     AlphaSlider(
                         modifier = Modifier
@@ -290,13 +382,23 @@ class MainActivity : ComponentActivity() {
                     var userHashCode by remember {
                         mutableStateOf(123456)
                     }
-                    Text(text = "UserID: $userHashCode", modifier = Modifier.padding(8.dp).fillMaxWidth())
-                    FluidBox(
-                        Modifier
+                    Text(
+                        text = "UserID: $userHashCode", modifier = Modifier
+                            .padding(8.dp)
                             .fillMaxWidth()
-                            .noRippleClickable {
-                                userHashCode = (1..9999999).random()
-                            }, textColors, userHashCode)
+                    )
+
+                    if (showCalendar) {
+                        CalendarBox(textColors, days)
+                    } else {
+                        FluidBox(
+                            Modifier
+                                .fillMaxWidth()
+                                .noRippleClickable {
+                                    userHashCode = (1..9999999).random()
+                                }, textColors, userHashCode
+                        )
+                    }
 
                 }
             }
@@ -304,31 +406,169 @@ class MainActivity : ComponentActivity() {
     }
 }
 
+@Composable
+fun CalendarBox(colors: List<MutableState<Color>>, days: List<GSDay>) {
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(Color.Black)
+    ) {
+        val width = 204
+
+        Column(modifier = Modifier
+            .padding(20.dp)
+            .width(width.dp)
+            .align(Alignment.Center)) {
+            repeat(days.size / 7) { row ->
+                Row {
+                    val start = row * 7
+                    val end = row * 7 + 7
+                    getRowData(days.subList(start, end)).forEach {
+                        if (it.size == 1) {
+                            val startPadding = if (it.startIndex == 0) {
+                                0
+                            } else {
+                                10
+                            }
+                            val endPadding = if (it.startIndex == 6) {
+                                0
+                            } else {
+                                10
+                            }
+                            if (it.current) {
+                                CurrentDay(it.index)
+                            } else {
+                                if (it.done) {
+                                    CompleteDay(startPadding, endPadding)
+                                } else {
+                                    EmptyDay(startPadding, endPadding)
+                                }
+                            }
+                        } else {
+                            val startPadding = if (it.startIndex == 0) {
+                                0
+                            } else {
+                                10
+                            }
+                            val endPadding = if (it.startIndex + it.size == 7) {
+                                0
+                            } else {
+                                10
+                            }
+                            DaysRowView(it.size, startPadding, endPadding, colors)
+                        }
+                    }
+                }
+            }
+        }
+
+    }
+
+}
+
+
+@Composable
+fun DaysRowView(size: Int, startPadding: Int, endPadding: Int, colors: List<MutableState<Color>>) {
+    val brush = Brush.horizontalGradient(colors.map { it.value })
+    Box(
+        modifier = Modifier
+            .padding(start = startPadding.dp, end = endPadding.dp, top = 13.dp, bottom = 13.dp)
+            .height(6.dp)
+            .width((12 * size + (size - 1) * 20).dp)
+            .background(brush, RoundedCornerShape(3.dp))
+    )
+}
+
+@Composable
+fun CurrentDay(index: Int) {
+    Box(
+        modifier = Modifier
+            .size(32.dp)
+            .background(Color.Blue, CircleShape)
+    ) {
+        Text(text = index.toString(), color = Color.Black, modifier = Modifier.align(Alignment.Center))
+    }
+}
+
+@Composable
+fun CompleteDay(startPadding: Int, endPadding: Int) {
+    Box(
+        modifier = Modifier
+            .padding(start = startPadding.dp, end = endPadding.dp, top = 10.dp, bottom = 10.dp)
+            .size(12.dp)
+            .background(Color.Blue, CircleShape)
+    )
+}
+
+@Composable
+fun EmptyDay(startPadding: Int, endPadding: Int) {
+    Box(modifier = Modifier
+        .padding(start = startPadding.dp, end = endPadding.dp, top = 10.dp, bottom = 10.dp)
+        .size(12.dp)
+        .background("FF2C2C2E".toColor(), CircleShape))
+}
+
+private fun getRowData(days: List<GSDay>): List<GSCalendarDayRow> {
+    val list = mutableListOf<GSCalendarDayRow>()
+    var counter = 0
+    days.forEachIndexed { index, gsDay ->
+        if (!gsDay.done) {
+            if (counter != 0) {
+                list.add(GSCalendarDayRow(index - counter, counter, true))
+                counter = 0
+            }
+            list.add(GSCalendarDayRow(index, 1, false))
+        } else if (gsDay.current) {
+            if (counter != 0) {
+                list.add(GSCalendarDayRow(index - counter, counter, true))
+                counter = 0
+            }
+            list.add(GSCalendarDayRow(index, 1, true, true, 41))
+        } else {
+            counter++
+        }
+        if (index == days.size - 1 && counter != 0) {
+            list.add(GSCalendarDayRow(index - counter, counter, true))
+        }
+    }
+    return list
+}
+
 
 @Composable
 fun FluidBox(modifier: Modifier, colors: List<MutableState<Color>>, hashCode: Int) {
     val maxSize = 200
     val generator = BlobGenerator(hashCode, maxSize)
-    Box(modifier = modifier
-        .background(Color.Black)
-        .padding(30.dp), contentAlignment = Alignment.Center) {
+    Box(
+        modifier = modifier
+            .background(Color.Black)
+            .padding(30.dp), contentAlignment = Alignment.Center
+    ) {
         Canvas(
             modifier = Modifier
                 .size(maxSize.dp)
-                .blur(60.dp, edgeTreatment = BlurredEdgeTreatment(CircleShape))
+                .blur(40.dp, edgeTreatment = BlurredEdgeTreatment(CircleShape))
         ) {
-            drawRect(
-                color = colors[hashCode % (colors.size)].value,
-                size = size
-            )
+            val brush = Brush.verticalGradient(colors.map { it.value })
+            drawRect(brush)
             colors.forEachIndexed { ind, colorState ->
                 val index = ind + 1
                 drawCircle(
                     color = colorState.value,
-                    radius = generator.findRadius(index, stringHashCode(colorToHexString(colorState.value))).dp.toPx(),
+                    radius = generator.findRadius(
+                        index,
+                        stringHashCode(colorToHexString(colorState.value))
+                    ).dp.toPx(),
                     center = Offset(
-                        generator.findX(index, stringHashCode(colorToHexString(colorState.value))).dp.toPx(),
-                        generator.findY(index, stringHashCode(colorToHexString(colorState.value))).dp.toPx(),
+                        generator.findX(
+                            index,
+                            stringHashCode(colorToHexString(colorState.value))
+                        ).dp.toPx(),
+                        generator.findY(
+                            index,
+                            stringHashCode(colorToHexString(colorState.value))
+                        ).dp.toPx(),
                     )
                 )
             }
@@ -342,19 +582,22 @@ class BlobGenerator(private val userHashCode: Int, private val max: Int) {
         val rangeEnd = max / 3
         val seed = userHashCode * index * colorHashCode
         val random = CustomRandom(seed)
-        return random.nextInt(rangeStart, rangeEnd)
+        val rad = random.nextInt(rangeStart, rangeEnd)
+        return rad
     }
 
     fun findX(index: Int, colorHashCode: Int): Int {
         val seed = userHashCode + index + colorHashCode
         val random = CustomRandom(seed)
-        return random.nextInt(0, max)
+        val x = random.nextInt(0, max)
+        return x
     }
 
     fun findY(index: Int, colorHashCode: Int): Int {
         val seed = userHashCode - index - colorHashCode
         val random = CustomRandom(seed)
-        return random.nextInt(0, max)
+        val y = random.nextInt(0, max)
+        return y
     }
 }
 
@@ -373,7 +616,7 @@ fun colorToHexString(color: Color): String {
 fun stringHashCode(input: String): Int {
     var hash = 5381
     for (char in input) {
-        hash = Math.floorMod(hash * 33 + char.toInt(), Int.MAX_VALUE)
+        hash = (hash * 33 + char.code) % Int.MAX_VALUE
     }
     return hash
 }
