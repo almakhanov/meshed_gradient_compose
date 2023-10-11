@@ -1,10 +1,10 @@
 package com.example.meshed_gradient
 
 import android.os.Bundle
-import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -13,21 +13,18 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.MutableState
-import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -41,20 +38,19 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.colorspace.ColorSpace
-import androidx.compose.ui.graphics.drawscope.scale
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.toArgb
-import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.meshed_gradient.screenshot.ImageResult
+import com.example.meshed_gradient.screenshot.ScreenshotBox
+import com.example.meshed_gradient.screenshot.ScreenshotState
+import com.example.meshed_gradient.screenshot.rememberScreenshotState
 import com.example.meshed_gradient.ui.theme.MeshedGradientTheme
 import com.github.skydoves.colorpicker.compose.AlphaSlider
-import com.github.skydoves.colorpicker.compose.AlphaTile
 import com.github.skydoves.colorpicker.compose.BrightnessSlider
-import com.github.skydoves.colorpicker.compose.ColorEnvelope
-import com.github.skydoves.colorpicker.compose.ColorPickerController
 import com.github.skydoves.colorpicker.compose.HsvColorPicker
 import com.github.skydoves.colorpicker.compose.drawColorIndicator
 import com.github.skydoves.colorpicker.compose.rememberColorPickerController
@@ -148,6 +144,9 @@ class MainActivity : ComponentActivity() {
 
                 val controller = rememberColorPickerController()
 
+                val screenshotState = rememberScreenshotState()
+                val imageResult: ImageResult = screenshotState.imageState.value
+
                 val hexCodes = listOf(
                     remember { mutableStateOf("FFA6FF8C") },
                     remember { mutableStateOf("FF0EE2FF") },
@@ -195,6 +194,7 @@ class MainActivity : ComponentActivity() {
                                 .align(Alignment.CenterStart)
                                 .background(Color.Green)
                                 .clickable {
+                                    screenshotState.capture()
                                     showCalendar = !showCalendar
                                 },
                             color = Color.White
@@ -389,14 +389,14 @@ class MainActivity : ComponentActivity() {
                     )
 
                     if (showCalendar) {
-                        CalendarBox(textColors, days)
+                        CalendarBox(textColors, days, screenshotState)
                     } else {
                         FluidBox(
                             Modifier
                                 .fillMaxWidth()
                                 .noRippleClickable {
                                     userHashCode = (1..9999999).random()
-                                }, textColors, userHashCode
+                                }, textColors, userHashCode, screenshotState
                         )
                     }
 
@@ -407,7 +407,7 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-fun CalendarBox(colors: List<MutableState<Color>>, days: List<GSDay>) {
+fun CalendarBox(colors: List<MutableState<Color>>, days: List<GSDay>, screenshotState: ScreenshotState) {
 
     Box(
         modifier = Modifier
@@ -437,10 +437,10 @@ fun CalendarBox(colors: List<MutableState<Color>>, days: List<GSDay>) {
                                 10
                             }
                             if (it.current) {
-                                CurrentDay(it.index)
+                                CurrentDay(it.index, screenshotState)
                             } else {
                                 if (it.done) {
-                                    CompleteDay(startPadding, endPadding)
+                                    CompleteDay(startPadding, endPadding, screenshotState)
                                 } else {
                                     EmptyDay(startPadding, endPadding)
                                 }
@@ -481,24 +481,53 @@ fun DaysRowView(size: Int, startPadding: Int, endPadding: Int, colors: List<Muta
 }
 
 @Composable
-fun CurrentDay(index: Int) {
-    Box(
-        modifier = Modifier
-            .size(32.dp)
-            .background(Color.Blue, CircleShape)
-    ) {
-        Text(text = index.toString(), color = Color.Black, modifier = Modifier.align(Alignment.Center))
+fun CurrentDay(index: Int, screenshotState: ScreenshotState) {
+    screenshotState.bitmapState.value?.asImageBitmap()?.let {
+        Box(contentAlignment = Alignment.Center,
+            modifier = Modifier
+                .size(32.dp)) {
+            Image(
+                modifier = Modifier
+                    .size(32.dp)
+                    .background(Color.Blue, CircleShape),
+                contentScale = ContentScale.Crop,
+                bitmap = it,
+                contentDescription = ""
+            )
+            Text(text = index.toString(),fontWeight = FontWeight(700), fontSize = 12.sp, color = Color.Black, modifier = Modifier.align(Alignment.Center))
+        }
+
+    } ?: run {
+        Box(
+            modifier = Modifier
+                .size(32.dp)
+                .background(Color.Blue, CircleShape)
+        ) {
+            Text(text = index.toString(), color = Color.Black, modifier = Modifier.align(Alignment.Center))
+        }
     }
 }
 
 @Composable
-fun CompleteDay(startPadding: Int, endPadding: Int) {
-    Box(
-        modifier = Modifier
-            .padding(start = startPadding.dp, end = endPadding.dp, top = 10.dp, bottom = 10.dp)
-            .size(12.dp)
-            .background(Color.Blue, CircleShape)
-    )
+fun CompleteDay(startPadding: Int, endPadding: Int, screenshotState: ScreenshotState) {
+    screenshotState.bitmapState.value?.asImageBitmap()?.let {
+        Image(
+            modifier = Modifier
+                .padding(start = startPadding.dp, end = endPadding.dp, top = 10.dp, bottom = 10.dp)
+                .size(12.dp)
+                .clip(CircleShape),
+            contentScale = ContentScale.Crop,
+            bitmap = it,
+            contentDescription = ""
+        )
+    } ?: run {
+        Box(
+            modifier = Modifier
+                .padding(start = startPadding.dp, end = endPadding.dp, top = 10.dp, bottom = 10.dp)
+                .size(12.dp)
+                .background(Color.Blue, CircleShape)
+        )
+    }
 }
 
 @Composable
@@ -529,7 +558,7 @@ private fun getRowData(days: List<GSDay>): List<GSCalendarDayRow> {
             counter++
         }
         if (index == days.size - 1 && counter != 0) {
-            list.add(GSCalendarDayRow(index - counter, counter, true))
+            list.add(GSCalendarDayRow(days.size - counter, counter, true))
         }
     }
     return list
@@ -537,7 +566,7 @@ private fun getRowData(days: List<GSDay>): List<GSCalendarDayRow> {
 
 
 @Composable
-fun FluidBox(modifier: Modifier, colors: List<MutableState<Color>>, hashCode: Int) {
+fun FluidBox(modifier: Modifier, colors: List<MutableState<Color>>, hashCode: Int, screenshotState: ScreenshotState) {
     val maxSize = 200
     val generator = BlobGenerator(hashCode, maxSize)
     Box(
@@ -545,32 +574,36 @@ fun FluidBox(modifier: Modifier, colors: List<MutableState<Color>>, hashCode: In
             .background(Color.Black)
             .padding(30.dp), contentAlignment = Alignment.Center
     ) {
-        Canvas(
-            modifier = Modifier
-                .size(maxSize.dp)
-                .blur(40.dp, edgeTreatment = BlurredEdgeTreatment(CircleShape))
+        ScreenshotBox(
+            screenshotState = screenshotState
         ) {
-            val brush = Brush.verticalGradient(colors.map { it.value })
-            drawRect(brush)
-            colors.forEachIndexed { ind, colorState ->
-                val index = ind + 1
-                drawCircle(
-                    color = colorState.value,
-                    radius = generator.findRadius(
-                        index,
-                        stringHashCode(colorToHexString(colorState.value))
-                    ).dp.toPx(),
-                    center = Offset(
-                        generator.findX(
+            Canvas(
+                modifier = Modifier
+                    .size(maxSize.dp)
+                    .blur(40.dp, edgeTreatment = BlurredEdgeTreatment(CircleShape))
+            ) {
+                val brush = Brush.verticalGradient(colors.map { it.value })
+                drawRect(brush)
+                colors.forEachIndexed { ind, colorState ->
+                    val index = ind + 1
+                    drawCircle(
+                        color = colorState.value,
+                        radius = generator.findRadius(
                             index,
                             stringHashCode(colorToHexString(colorState.value))
                         ).dp.toPx(),
-                        generator.findY(
-                            index,
-                            stringHashCode(colorToHexString(colorState.value))
-                        ).dp.toPx(),
+                        center = Offset(
+                            generator.findX(
+                                index,
+                                stringHashCode(colorToHexString(colorState.value))
+                            ).dp.toPx(),
+                            generator.findY(
+                                index,
+                                stringHashCode(colorToHexString(colorState.value))
+                            ).dp.toPx(),
+                        )
                     )
-                )
+                }
             }
         }
     }
